@@ -6,7 +6,7 @@ def get_default_config():
 
     # model
     cfg.model = CN()
-    cfg.model.name = 'resnet50'
+    cfg.model.name = 'osnet_nas'
     cfg.model.pretrained = True # automatically load pretrained model weights if available
     cfg.model.load_weights = '' # path to model weights
     cfg.model.resume = '' # path to checkpoint for resume training
@@ -62,7 +62,7 @@ def get_default_config():
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
     cfg.train.start_epoch = 0
-    cfg.train.batch_size = 32
+    cfg.train.batch_size = 16
     cfg.train.fixbase_epoch = 0 # number of epochs to fix base layers
     cfg.train.open_layers = [
         'classifier'
@@ -99,7 +99,7 @@ def get_default_config():
 
     # test
     cfg.test = CN()
-    cfg.test.batch_size = 100
+    cfg.test.batch_size = 16
     cfg.test.dist_metric = 'euclidean' # distance metric, ['euclidean', 'cosine']
     cfg.test.normalize_feature = False # normalize feature vectors before computing distance
     cfg.test.ranks = [1, 5, 10, 20] # cmc ranks
