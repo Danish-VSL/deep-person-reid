@@ -1,5 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
+import torch
+
 from torchreid import metrics
 from torchreid.losses import CrossEntropyLoss
 
@@ -77,6 +79,8 @@ class ImageSoftmaxEngine(Engine):
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
+        #imgs = torch.tensor(imgs)
+        #print(data)
 
         if self.use_gpu:
             imgs = imgs.cuda()

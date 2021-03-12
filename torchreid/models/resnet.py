@@ -7,7 +7,8 @@ from torch import nn
 
 __all__ = [
     'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-    'resnext50_32x4d', 'resnext101_32x8d', 'resnet50_fc512'
+    'resnext50_32x4d', 'resnext101_32x8d', 'resnet50_fc512', 'resnext101_32x32d',
+    'resnext101_32x16d'
 ]
 
 model_urls = {
@@ -24,7 +25,14 @@ model_urls = {
     'resnext50_32x4d':
     'https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth',
     'resnext101_32x8d':
-    'https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth',
+    'https://download.pytorch.org/models/ig_resnext101_32x8-c38310e5.pth',
+   # 'https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth',
+    'resnext101_32x32d':
+    'https://download.pytorch.org/models/ig_resnext101_32x32-e4b90b00.pth',
+    'resnext101_32x16d':
+    'https://download.pytorch.org/models/ig_resnext101_32x16-c6f796b0.pth'
+
+
 }
 
 
@@ -512,7 +520,39 @@ def resnext101_32x8d(num_classes, loss='softmax', pretrained=True, **kwargs):
 """
 ResNet + FC
 """
+def resnext101_32x32d(num_classes, loss='softmax', pretrained=True, **kwargs):
+    model = ResNet(
+        num_classes=num_classes,
+        loss=loss,
+        block=Bottleneck,
+        layers=[3, 4, 23, 3],
+        last_stride=2,
+        fc_dims=[512],
+        dropout_p=0.5,
+        groups=32,
+        width_per_group=32,
+        **kwargs
+    )
+    if pretrained:
+        init_pretrained_weights(model, model_urls['resnext101_32x32d'])
+    return model
 
+def resnext101_32x16d(num_classes, loss='softmax', pretrained=True, **kwargs):
+    model = ResNet(
+        num_classes=num_classes,
+        loss=loss,
+        block=Bottleneck,
+        layers=[3, 4, 23, 3],
+        last_stride=2,
+        fc_dims=[512],
+        dropout_p=0.2,
+        groups=32,
+        width_per_group=16,
+        **kwargs
+    )
+    if pretrained:
+        init_pretrained_weights(model, model_urls['resnext101_32x16d'])
+    return model
 
 def resnet50_fc512(num_classes, loss='softmax', pretrained=True, **kwargs):
     model = ResNet(

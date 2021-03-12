@@ -14,15 +14,15 @@ import torch.backends.cudnn as cudnn
 from torch.optim import lr_scheduler
 
 from args import argument_parser, image_dataset_kwargs, optimizer_kwargs
-from torchreid.data_manager import ImageDataManager
+from torchreid.data import ImageDataManager
 from torchreid import models
 from torchreid.utils.iotools import save_checkpoint, check_isfile
 from torchreid.utils.avgmeter import AverageMeter
 from torchreid.utils.loggers import Logger, RankLogger
 from torchreid.utils.torchtools import count_num_param, open_all_layers, open_specified_layers
 from torchreid.utils.reidtools import visualize_ranked_results
-from torchreid.eval_metrics import evaluate
-from torchreid.optimizers import init_optimizer
+from torchreid.metrics import evaluate_rank
+from torchreid.optim import optimizer as opt
 from torchreid.regularizers import get_regularizer
 
 
@@ -84,7 +84,7 @@ def main():
 
     criterion = get_criterion(dm.num_train_pids, use_gpu, args)
     regularizer = get_regularizer(vars(args))
-    optimizer = init_optimizer(model.parameters(), **optimizer_kwargs(args))
+    optimizer = opt.build_optimizer(model.parameters(), **optimizer_kwargs(args))
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=args.stepsize, gamma=args.gamma)
 
     if args.load_weights and check_isfile(args.load_weights):
@@ -373,7 +373,7 @@ def test(model, queryloader, galleryloader, use_gpu, ranks=[1, 5, 10, 20], retur
         io.savemat(os.environ.get('distmat'), {'distmat': distmat, 'qp': q_paths, 'gp': g_paths})
 
     print("Computing CMC and mAP")
-    cmc, mAP = evaluate(distmat, q_pids, g_pids, q_camids, g_camids, use_metric_cuhk03=args.use_metric_cuhk03)
+    cmc, mAP = evaluate_rank(distmat, q_pids, g_pids, q_camids, g_camids, use_metric_cuhk03=args.use_metric_cuhk03)
 
     print("Results ----------")
     print("mAP: {:.2%}".format(mAP))

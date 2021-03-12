@@ -1,7 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 from torchreid import metrics
-from torchreid.losses import TripletLoss, CrossEntropyLoss
+from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss
 
 from ..engine import Engine
 
@@ -67,6 +67,7 @@ class ImageTripletEngine(Engine):
         margin=0.3,
         weight_t=1,
         weight_x=1,
+        weight_r=1,
         scheduler=None,
         use_gpu=True,
         label_smooth=True
@@ -82,6 +83,7 @@ class ImageTripletEngine(Engine):
         assert weight_t + weight_x > 0
         self.weight_t = weight_t
         self.weight_x = weight_x
+        self.weight_r = weight_r
 
         self.criterion_t = TripletLoss(margin=margin)
         self.criterion_x = CrossEntropyLoss(
@@ -89,6 +91,7 @@ class ImageTripletEngine(Engine):
             use_gpu=self.use_gpu,
             label_smooth=label_smooth
         )
+        self.criterion_r = RingLoss()
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
@@ -111,6 +114,12 @@ class ImageTripletEngine(Engine):
             loss_x = self.compute_loss(self.criterion_x, outputs, pids)
             loss += self.weight_x * loss_x
             loss_summary['loss_x'] = loss_x.item()
+            loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
+
+        if self.weight_r > 0:
+            loss_r = self.compute_loss(self.criterion_r, outputs, pids)
+            loss += self.weight_r * loss_r
+            loss_summary['loss_r'] = loss_r.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
         assert loss_summary

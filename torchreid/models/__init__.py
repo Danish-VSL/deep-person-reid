@@ -21,6 +21,9 @@ from .resnet_ibn_a import *
 from .resnet_ibn_b import *
 from .shufflenetv2 import *
 from .inceptionresnetv2 import *
+from .vit_pytorch import *
+from .ViT import *
+from .ViT import vittimm
 
 __model_factory = {
     # image classification models
@@ -31,6 +34,8 @@ __model_factory = {
     'resnet152': resnet152,
     'resnext50_32x4d': resnext50_32x4d,
     'resnext101_32x8d': resnext101_32x8d,
+    'resnext101_32x32d': resnext101_32x32d,
+    'resnext101_32x16d': resnext101_32x16d,
     'resnet50_fc512': resnet50_fc512,
     'se_resnet50': se_resnet50,
     'se_resnet50_fc512': se_resnet50_fc512,
@@ -71,7 +76,9 @@ __model_factory = {
     'osnet_x0_5': osnet_x0_5,
     'osnet_x0_25': osnet_x0_25,
     'osnet_ibn_x1_0': osnet_ibn_x1_0,
-    'osnet_ain_x1_0': osnet_ain_x1_0
+    'osnet_ain_x1_0': osnet_ain_x1_0,
+    'vit': vit,
+    'vit_timm': vittimm
 }
 
 
@@ -86,7 +93,7 @@ def show_avai_models():
 
 
 def build_model(
-    name, num_classes, loss='softmax', pretrained=True, use_gpu=True
+        name, num_classes, loss='softmax', pretrained=True, use_gpu=True
 ):
     """A function wrapper for building a model.
 
@@ -115,5 +122,6 @@ def build_model(
         num_classes=num_classes,
         loss=loss,
         pretrained=pretrained,
-        use_gpu=use_gpu
+        use_gpu=use_gpu,
+
     )
