@@ -24,6 +24,7 @@ from .inceptionresnetv2 import *
 from .vit_pytorch import *
 from .ViT import *
 from .ViT import vittimm
+from .ViT import vittimmdiet
 
 __model_factory = {
     # image classification models
@@ -78,7 +79,9 @@ __model_factory = {
     'osnet_ibn_x1_0': osnet_ibn_x1_0,
     'osnet_ain_x1_0': osnet_ain_x1_0,
     'vit': vit,
-    'vit_timm': vittimm
+    'vit_timm': vittimm,
+    'vit_timm_diet': vittimmdiet
+
 }
 
 

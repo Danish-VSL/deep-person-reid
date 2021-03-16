@@ -6,8 +6,8 @@ def get_default_config():
 
     # model
     cfg.model = CN()
-    cfg.model.name = 'vit_timm'
-    cfg.model.pretrained = False  # automatically load pretrained model weights if available
+    cfg.model.name = 'vit_timm_diet'
+    cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
     cfg.model.resume = ''  # path to checkpoint for resume training
 
@@ -31,7 +31,7 @@ def get_default_config():
 
     # specific datasets
     cfg.market1501 = CN()
-    cfg.market1501.use_500k_distractors = False  # add 500k distractors to the gallery set for market1501
+    cfg.market1501.use_500k_distractors = True  # add 500k distractors to the gallery set for market1501
     cfg.cuhk03 = CN()
     cfg.cuhk03.labeled_images = False  # use labeled images, if False, use detected images
     cfg.cuhk03.classic_split = False  # use classic split by Li et al. CVPR14
@@ -64,7 +64,7 @@ def get_default_config():
         'head'
     ]  # layers for training while keeping others frozen
     cfg.train.staged_lr = False  # set different lr to different layers
-    cfg.train.new_layers = ['']  # newly added layers with default lr
+    cfg.train.new_layers = ['head']  # newly added layers with default lr
     cfg.train.base_lr_mult = 0.1  # learning rate multiplier for base layers
     cfg.train.lr_scheduler = 'single_step'
     cfg.train.stepsize = [20]  # stepsize to decay learning rate

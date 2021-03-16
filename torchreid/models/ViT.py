@@ -817,3 +817,24 @@ def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
     # if pretrained:
     #     init_pretrained_weights(model, model_urls['resnet50'])
     return model
+
+
+
+def vittimmdiet(num_classes, loss='softmax', pretrained=True, **kwargs):
+    model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
+    # model = ViT(
+    #     image_size=256,
+    #     patch_size=32,
+    #     num_classes=num_classes,
+    #     loss=loss,
+    #     dim=1024,
+    #     depth=6,
+    #     heads=16,
+    #     mlp_dim=2048,
+    #     dropout=0.1,
+    #     emb_dropout=0.1,
+    #     **kwargs
+    # )
+    # if pretrained:
+    #     init_pretrained_weights(model, model_urls['resnet50'])
+    return model
