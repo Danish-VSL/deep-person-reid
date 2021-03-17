@@ -16,13 +16,13 @@ def get_default_config():
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['dukemtmcreid']#dukemtmcreid
+    cfg.data.targets = ['market1501']#dukemtmcreid
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
     cfg.data.width = 224  # image width
     cfg.data.combineall = False  # combine train, query and gallery for training
-    cfg.data.transforms = ['color_jitter']  # data augmentation random_flip
+    cfg.data.transforms = ['random_flip']  # data augmentation random_flip 'color_jitter',
     cfg.data.k_tfm = 1  # number of times to apply augmentation to an image independently
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
     cfg.data.norm_std = [0.229, 0.224, 0.225]  # default is imagenet std
@@ -31,7 +31,7 @@ def get_default_config():
 
     # specific datasets
     cfg.market1501 = CN()
-    cfg.market1501.use_500k_distractors = True  # add 500k distractors to the gallery set for market1501
+    cfg.market1501.use_500k_distractors = False  # add 500k distractors to the gallery set for market1501
     cfg.cuhk03 = CN()
     cfg.cuhk03.labeled_images = False  # use labeled images, if False, use detected images
     cfg.cuhk03.classic_split = False  # use classic split by Li et al. CVPR14
@@ -42,7 +42,7 @@ def get_default_config():
     cfg.sampler.train_sampler = 'RandomSampler'  # sampler for source train loader
     cfg.sampler.train_sampler_t = 'RandomSampler'  # sampler for target train loader
     cfg.sampler.num_instances = 4  # number of instances per identity for RandomIdentitySampler
-    cfg.sampler.num_cams = 1  # number of cameras to sample in a batch (for RandomDomainSampler)
+    cfg.sampler.num_cams = 2  # number of cameras to sample in a batch (for RandomDomainSampler)
     cfg.sampler.num_datasets = 1  # number of datasets to sample in a batch (for RandomDatasetSampler)
 
     # video reid setting
@@ -58,13 +58,13 @@ def get_default_config():
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 10
     cfg.train.start_epoch = 0
-    cfg.train.batch_size = 32
-    cfg.train.fixbase_epoch = 5   # number of epochs to fix base layers
+    cfg.train.batch_size = 16
+    cfg.train.fixbase_epoch = 0   # number of epochs to fix base layers
     cfg.train.open_layers = [
-        'head'
+        ''
     ]  # layers for training while keeping others frozen
     cfg.train.staged_lr = False  # set different lr to different layers
-    cfg.train.new_layers = ['head']  # newly added layers with default lr
+    cfg.train.new_layers = ['']  # newly added layers with default lr
     cfg.train.base_lr_mult = 0.1  # learning rate multiplier for base layers
     cfg.train.lr_scheduler = 'single_step'
     cfg.train.stepsize = [20]  # stepsize to decay learning rate

@@ -645,7 +645,7 @@ def vit_huge_patch14_224_in21k(pretrained=False, **kwargs):
 
 
 @register_model
-def vit_base_resnet50_224_in21k(pretrained=False, **kwargs):
+def vit_base_resnet50_224_in21k(noofclasses, imagesize, pretrained=False, **kwargs):
     """ R50+ViT-B/16 hybrid model from original paper (https://arxiv.org/abs/2010.11929).
     ImageNet-21k weights @ 224x224, source https://github.com/google-research/vision_transformer.
     """
@@ -656,7 +656,7 @@ def vit_base_resnet50_224_in21k(pretrained=False, **kwargs):
     model_kwargs = dict(
         embed_dim=768, depth=12, num_heads=12, hybrid_backbone=backbone,
         representation_size=768, **kwargs)
-    model = _create_vision_transformer('vit_base_resnet50_224_in21k', pretrained=pretrained, **model_kwargs)
+    model = _create_vision_transformer('vit_base_resnet50_224_in21k',noofclasses=noofclasses, imagesize=imagesize,  pretrained=pretrained, **model_kwargs)
     return model
 
 
@@ -772,18 +772,18 @@ def vit_deit_small_distilled_patch16_224(pretrained=False, **kwargs):
     """
     model_kwargs = dict(patch_size=16, embed_dim=384, depth=12, num_heads=6, **kwargs)
     model = _create_vision_transformer(
-        'vit_deit_small_distilled_patch16_224', pretrained=pretrained, distilled=True, **model_kwargs)
+        'vit_deit_small_distilled_patch16_224',  pretrained=pretrained, distilled=True, **model_kwargs)
     return model
 
 
 @register_model
-def vit_deit_base_distilled_patch16_224(pretrained=False, **kwargs):
+def vit_deit_base_distilled_patch16_224(num_classes, imagesize,pretrained=False, **kwargs):
     """ DeiT-base distilled model @ 224x224 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
     model = _create_vision_transformer(
-        'vit_deit_base_distilled_patch16_224', pretrained=pretrained, distilled=True, **model_kwargs)
+        'vit_deit_base_distilled_patch16_224', num_classes, imagesize, pretrained=pretrained, **model_kwargs)
     return model
 
 
@@ -821,7 +821,10 @@ def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
 
 
 def vittimmdiet(num_classes, loss='softmax', pretrained=True, **kwargs):
-    model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
+    #model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=False, **kwargs)
+    #model = vit_deit_base_distilled_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
+    model = vit_base_resnet50_224_in21k(num_classes, 224, pretrained=True, distilled=False, **kwargs)
+
     # model = ViT(
     #     image_size=256,
     #     patch_size=32,
