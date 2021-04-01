@@ -195,11 +195,27 @@ class Block(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        # self.IN1 = nn.InstanceNorm2d(dim, affine=True)
+        # SNR
+        # print(embed_dim)
+        self.snrIN = nn.InstanceNorm1d(dim, affine=True)
+        self.SNR = ChannelGate_sub(dim, num_gates=dim, return_gates=False,
+                                   gate_activation='sigmoid', reduction=16, layer_norm=False)
 
     def forward(self, x):
         x = x + self.drop_path(self.attn(self.norm1(x)))
         x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
+        # x_1_ori = x
+        #print(x.shape)
+        x_IN_1 = self.snrIN(torch.transpose(x, 1, 2))
+        #print(x_IN_1.shape)
+        x_style_1 = x - torch.transpose(x_IN_1, 1, 2)
+        #print(x_style_1.shape)
+        x_style_1_reid_useful, x_style_1_reid_useless, selective_weight_useful_1 = self.SNR(torch.transpose(x_style_1,1,2))
+        x = x_IN_1 + x_style_1_reid_useful
+        # x_1_useless = x_IN_1 + x_style_1_reid_useless
+        #print(x.shape)
+        return torch.transpose(x, 1, 2)
 
 
 class PatchEmbed(nn.Module):
@@ -275,7 +291,8 @@ class VisionTransformer(nn.Module):
         https://arxiv.org/abs/2010.11929
     """
 
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
+    def __init__(self, img_size=224, loss='softmax', patch_size=16, in_chans=3, num_classes=1000, embed_dim=768,
+                 depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0., hybrid_backbone=None, norm_layer=None, **kwargs):
         """
@@ -298,6 +315,8 @@ class VisionTransformer(nn.Module):
             norm_layer: (nn.Module): normalization layer
         """
         super().__init__()
+        self.loss = loss
+
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
@@ -370,15 +389,76 @@ class VisionTransformer(nn.Module):
 
         for blk in self.blocks:
             x = blk(x)
+            # #x_1_ori = x
+            # #print(x.shape)
+            # x_IN_1 = self.snrIN(x)
+            # #print(x_IN_1.shape)
+            # x_style_1 = x - x_IN_1
+            # #print(x_style_1.shape)
+            # x_style_1_reid_useful, x_style_1_reid_useless, selective_weight_useful_1 = self.SNR(x_style_1)
+            # x = x_IN_1 + x_style_1_reid_useful
+            # #x_1_useless = x_IN_1 + x_style_1_reid_useless
 
         x = self.norm(x)[:, 0]
         x = self.pre_logits(x)
         return x
 
     def forward(self, x):
-        x = self.forward_features(x)
-        x = self.head(x)
+        v = self.forward_features(x)
+        y = self.head(v)
+
+        if not self.training:
+            return v
+
+        if self.loss == 'softmax':
+            return y
+        elif self.loss == 'triplet':
+            return y, v
+        else:
+            raise KeyError("Unsupported loss: {}".format(self.loss))
         return x
+
+
+class ChannelGate_sub(nn.Module):
+    """A mini-network that generates channel-wise gates conditioned on input tensor."""
+
+    def __init__(self, in_channels, num_gates=None, return_gates=False,
+                 gate_activation='sigmoid', reduction=16, layer_norm=False):
+        super(ChannelGate_sub, self).__init__()
+        if num_gates is None:
+            num_gates = in_channels
+        self.return_gates = return_gates
+        self.global_avgpool = nn.AdaptiveAvgPool1d(1)
+        self.fc1 = nn.Conv1d(in_channels, in_channels // reduction, kernel_size=1, bias=True, padding=0)
+        self.norm1 = None
+        if layer_norm:
+            self.norm1 = nn.LayerNorm((in_channels // reduction, 1, 1))
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv1d(in_channels // reduction, num_gates, kernel_size=1, bias=True, padding=0)
+        if gate_activation == 'sigmoid':
+            self.gate_activation = nn.Sigmoid()
+        elif gate_activation == 'relu':
+            self.gate_activation = nn.ReLU(inplace=True)
+        elif gate_activation == 'linear':
+            self.gate_activation = None
+        else:
+            raise RuntimeError("Unknown gate activation: {}".format(gate_activation))
+
+    def forward(self, x):
+        input1 = x
+        # print(x.shape)
+        x = self.global_avgpool(x)
+        # print(x.shape)
+        x = self.fc1(x)
+        if self.norm1 is not None:
+            x = self.norm1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        if self.gate_activation is not None:
+            x = self.gate_activation(x)
+        if self.return_gates:
+            return x
+        return input1 * x, input1 * (1 - x), x
 
 
 class DistilledVisionTransformer(VisionTransformer):
@@ -467,17 +547,17 @@ def checkpoint_filter_fn(state_dict, model):
     return out_dict
 
 
-def _create_vision_transformer(variant, noofclasses, imagesize, pretrained=True, distilled=True,
+def _create_vision_transformer(variant, noofclasses, imagesize, loss, pretrained=True, distilled=True,
                                **kwargs):
     default_cfg = default_cfgs[variant]
     default_num_classes = noofclasses
-#    default_img_size = imagesize[-1]
+    #    default_img_size = imagesize[-1]
 
-    #num_classes = kwargs.pop('num_classes', default_num_classes)
+    # num_classes = kwargs.pop('num_classes', default_num_classes)
     num_classes = noofclasses
     img_size = imagesize
-    #img_size = kwargs.pop('img_size', default_img_size)
-    repr_size = kwargs.pop('representation_size', None)
+    # img_size = kwargs.pop('img_size', default_img_size)
+    repr_size = kwargs.pop('representation_size', 2048)
     if repr_size is not None and num_classes != default_num_classes:
         # Remove representation layer if fine-tuning. This may not always be the desired action,
         # but I feel better than doing nothing by default for fine-tuning. Perhaps a better interface?
@@ -485,14 +565,15 @@ def _create_vision_transformer(variant, noofclasses, imagesize, pretrained=True,
         repr_size = None
 
     model_cls = DistilledVisionTransformer if distilled else VisionTransformer
-    model = model_cls(img_size=img_size, num_classes=num_classes, representation_size=repr_size, **kwargs)
+    model = model_cls(img_size=img_size, num_classes=num_classes, loss=loss, representation_size=repr_size, **kwargs)
     model.default_cfg = default_cfg
-
+    print(pretrained)
     if pretrained:
         load_pretrained(
             model, num_classes=num_classes, in_chans=kwargs.get('in_chans', 3),
             filter_fn=partial(checkpoint_filter_fn, model=model))
         print('Loaded pretrained vit model from url')
+        print(model)
     return model
 
 
@@ -510,12 +591,14 @@ def vit_small_patch16_224(pretrained=False, **kwargs):
 
 
 @register_model
-def vit_base_patch16_224(noofclasses, imagesize,pretrained=True, **kwargs):
+def vit_base_patch16_224(noofclasses, imagesize, loss, pretrained=True, **kwargs):
     """ ViT-Base (ViT-B/16) from original paper (https://arxiv.org/abs/2010.11929).
     ImageNet-1k weights fine-tuned from in21k @ 224x224, source https://github.com/google-research/vision_transformer.
     """
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer('vit_base_patch16_224', noofclasses=noofclasses, imagesize=imagesize,pretrained=True, **model_kwargs)
+    # model_kwargs = dict(patch_size=16, embed_dim=1024, depth=16, num_heads=16, **kwargs)
+    model = _create_vision_transformer('vit_base_patch16_224', noofclasses=noofclasses, imagesize=imagesize, loss=loss,
+                                       pretrained=True, **model_kwargs)
     return model
 
 
@@ -645,7 +728,7 @@ def vit_huge_patch14_224_in21k(pretrained=False, **kwargs):
 
 
 @register_model
-def vit_base_resnet50_224_in21k(noofclasses, imagesize, pretrained=False, **kwargs):
+def vit_base_resnet50_224_in21k(noofclasses, imagesize, loss, pretrained=False, **kwargs):
     """ R50+ViT-B/16 hybrid model from original paper (https://arxiv.org/abs/2010.11929).
     ImageNet-21k weights @ 224x224, source https://github.com/google-research/vision_transformer.
     """
@@ -656,7 +739,8 @@ def vit_base_resnet50_224_in21k(noofclasses, imagesize, pretrained=False, **kwar
     model_kwargs = dict(
         embed_dim=768, depth=12, num_heads=12, hybrid_backbone=backbone,
         representation_size=768, **kwargs)
-    model = _create_vision_transformer('vit_base_resnet50_224_in21k',noofclasses=noofclasses, imagesize=imagesize,  pretrained=pretrained, **model_kwargs)
+    model = _create_vision_transformer('vit_base_resnet50_224_in21k', noofclasses=noofclasses, imagesize=imagesize,
+                                       loss=loss, pretrained=pretrained, **model_kwargs)
     return model
 
 
@@ -740,7 +824,8 @@ def vit_deit_base_patch16_224(num_classes, imagesize, pretrained=True, **kwargs)
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer('vit_deit_base_patch16_224', num_classes, imagesize,  pretrained=pretrained, **model_kwargs)
+    model = _create_vision_transformer('vit_deit_base_patch16_224', num_classes, imagesize, pretrained=pretrained,
+                                       **model_kwargs)
     return model
 
 
@@ -772,12 +857,12 @@ def vit_deit_small_distilled_patch16_224(pretrained=False, **kwargs):
     """
     model_kwargs = dict(patch_size=16, embed_dim=384, depth=12, num_heads=6, **kwargs)
     model = _create_vision_transformer(
-        'vit_deit_small_distilled_patch16_224',  pretrained=pretrained, distilled=True, **model_kwargs)
+        'vit_deit_small_distilled_patch16_224', pretrained=pretrained, distilled=True, **model_kwargs)
     return model
 
 
 @register_model
-def vit_deit_base_distilled_patch16_224(num_classes, imagesize,pretrained=False, **kwargs):
+def vit_deit_base_distilled_patch16_224(num_classes, imagesize, pretrained=False, **kwargs):
     """ DeiT-base distilled model @ 224x224 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
@@ -799,8 +884,8 @@ def vit_deit_base_distilled_patch16_384(pretrained=False, **kwargs):
 
 
 def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
-    #model = vit_base_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
-    model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
+    model = vit_base_patch16_224(num_classes, 224, loss=loss, pretrained=pretrained, distilled=False, **kwargs)
+    # model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
     # model = ViT(
     #     image_size=256,
     #     patch_size=32,
@@ -819,11 +904,10 @@ def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
     return model
 
 
-
 def vittimmdiet(num_classes, loss='softmax', pretrained=True, **kwargs):
-    #model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=False, **kwargs)
-    #model = vit_deit_base_distilled_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
-    model = vit_base_resnet50_224_in21k(num_classes, 224, pretrained=True, distilled=False, **kwargs)
+    # model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=False, **kwargs)
+    # model = vit_deit_base_distilled_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
+    model = vit_base_resnet50_224_in21k(num_classes, 224, loss=loss, pretrained=True, distilled=False, **kwargs)
 
     # model = ViT(
     #     image_size=256,

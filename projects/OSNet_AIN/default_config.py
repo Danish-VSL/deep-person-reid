@@ -25,12 +25,12 @@ def get_default_config():
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['market1501']
+    cfg.data.targets = ['dukemtmcreid']
     cfg.data.workers = 4 # number of data loading workers
     cfg.data.split_id = 0 # split index
     cfg.data.height = 256 # image height
     cfg.data.width = 128 # image width
-    cfg.data.combineall = False # combine train, query and gallery for training
+    cfg.data.combineall = True # combine train, query and gallery for training
     cfg.data.transforms = ['random_flip'] # data augmentation
     cfg.data.norm_mean = [0.485, 0.456, 0.406] # default is imagenet mean
     cfg.data.norm_std = [0.229, 0.224, 0.225] # default is imagenet std
@@ -99,12 +99,12 @@ def get_default_config():
 
     # test
     cfg.test = CN()
-    cfg.test.batch_size = 16
+    cfg.test.batch_size = 64
     cfg.test.dist_metric = 'euclidean' # distance metric, ['euclidean', 'cosine']
     cfg.test.normalize_feature = False # normalize feature vectors before computing distance
     cfg.test.ranks = [1, 5, 10, 20] # cmc ranks
     cfg.test.evaluate = False # test only
-    cfg.test.eval_freq = -1 # evaluation frequency (-1 means to only test after training)
+    cfg.test.eval_freq = 3 # evaluation frequency (-1 means to only test after training)
     cfg.test.start_eval = 0 # start to evaluate after a specific epoch
     cfg.test.rerank = False # use person re-ranking
     cfg.test.visrank = False # visualize ranked results (only available when cfg.test.evaluate=True)

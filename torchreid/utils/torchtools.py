@@ -197,23 +197,35 @@ def open_specified_layers(model, open_layers):
         >>> open_layers = ['fc', 'classifier']
         >>> open_specified_layers(model, open_layers)
     """
+    #i=1
+    #for name, module in model.named_children():
+    #print(model.children().__getattribute__('head'))
     if isinstance(model, nn.DataParallel):
         model = model.module
 
     if isinstance(open_layers, str):
         open_layers = [open_layers]
 
-    for layer in open_layers:
-        assert hasattr(
-            model, layer
-        ), '"{}" is not an attribute of the model, please provide the correct name'.format(
-            layer
-        )
+    # for layer in open_layers:
+    #     assert hasattr(
+    #         model, layer
+    #     ), '"{}" is not an attribute of the model, please provide the correct name'.format(
+    #         layer
+    #     )
 
     for name, module in model.named_children():
+        if name == 'blocks':
+            for name ,module in module.named_children():
+                for name, module in module.named_children():
+                    if name in open_layers:
+                        module.train()
+                        for p in module.parameters():
+                            print(name)
+                            p.requires_grad = True
         if name in open_layers:
             module.train()
             for p in module.parameters():
+                print(name)
                 p.requires_grad = True
         else:
             module.eval()

@@ -76,6 +76,7 @@ class ImageSoftmaxEngine(Engine):
             use_gpu=self.use_gpu,
             label_smooth=label_smooth
         )
+        print(self.model)
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)

@@ -1,7 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 from torchreid import metrics
-from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss
+from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss, CenterLoss
 
 from ..engine import Engine
 
@@ -60,17 +60,19 @@ class ImageTripletEngine(Engine):
     """
 
     def __init__(
-        self,
-        datamanager,
-        model,
-        optimizer,
-        margin=0.3,
-        weight_t=1,
-        weight_x=1,
-        weight_r=1,
-        scheduler=None,
-        use_gpu=True,
-        label_smooth=True
+            self,
+            datamanager,
+            model,
+            optimizer,
+            margin=0.3,
+            weight_t=100,
+            weight_x=1,
+            weight_r=0,
+            weight_arc=0,
+            weight_center=0,
+            scheduler=None,
+            use_gpu=True,
+            label_smooth=True
     ):
         super(ImageTripletEngine, self).__init__(datamanager, use_gpu)
 
@@ -84,6 +86,8 @@ class ImageTripletEngine(Engine):
         self.weight_t = weight_t
         self.weight_x = weight_x
         self.weight_r = weight_r
+        self.weight_arc = weight_arc
+        self.weight_center = weight_center
 
         self.criterion_t = TripletLoss(margin=margin)
         self.criterion_x = CrossEntropyLoss(
@@ -92,6 +96,8 @@ class ImageTripletEngine(Engine):
             label_smooth=label_smooth
         )
         self.criterion_r = RingLoss()
+        self.criterion_center = CenterLoss(num_classes=self.datamanager.num_train_pids
+                                           , feat_dim=32, use_gpu=True)
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
@@ -101,6 +107,10 @@ class ImageTripletEngine(Engine):
             pids = pids.cuda()
 
         outputs, features = self.model(imgs)
+        # print(outputs.size())
+        # features = self.model.module.forward(imgs, return_embedding = True)
+        # print(len(features))
+        # outputs, features = outputs, features
 
         loss = 0
         loss_summary = {}
@@ -109,6 +119,7 @@ class ImageTripletEngine(Engine):
             loss_t = self.compute_loss(self.criterion_t, features, pids)
             loss += self.weight_t * loss_t
             loss_summary['loss_t'] = loss_t.item()
+            #print(loss)
 
         if self.weight_x > 0:
             loss_x = self.compute_loss(self.criterion_x, outputs, pids)
@@ -120,6 +131,12 @@ class ImageTripletEngine(Engine):
             loss_r = self.compute_loss(self.criterion_r, outputs, pids)
             loss += self.weight_r * loss_r
             loss_summary['loss_r'] = loss_r.item()
+            loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
+
+        if self.weight_center > 0:
+            loss_center = self.compute_loss(self.criterion_center, outputs, pids)
+            loss += self.weight_center * loss_center
+            loss_summary['loss_center'] = loss_center.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
         assert loss_summary

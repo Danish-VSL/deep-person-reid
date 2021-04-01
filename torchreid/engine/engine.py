@@ -437,6 +437,7 @@ class Engine(object):
             loss = DeepSupervision(criterion, outputs, targets)
         else:
             loss = criterion(outputs, targets)
+            #loss = DeepSupervision(criterion, outputs, targets)
         return loss
 
     def extract_features(self, input):

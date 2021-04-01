@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import torch
 
+from .efficientnet import efficient
 from .pcb import *
 from .mlfn import *
 from .hacnn import *
@@ -25,6 +26,8 @@ from .vit_pytorch import *
 from .ViT import *
 from .ViT import vittimm
 from .ViT import vittimmdiet
+from .byolreid import *
+from .efficientnet import *
 
 __model_factory = {
     # image classification models
@@ -80,7 +83,9 @@ __model_factory = {
     'osnet_ain_x1_0': osnet_ain_x1_0,
     'vit': vit,
     'vit_timm': vittimm,
-    'vit_timm_diet': vittimmdiet
+    'vit_timm_diet': vittimmdiet,
+    'byol': byol_vit,
+    'efficientnet': efficient
 
 }
 

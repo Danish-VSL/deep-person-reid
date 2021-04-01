@@ -26,6 +26,7 @@ class TripletLoss(nn.Module):
             inputs (torch.Tensor): feature matrix with shape (batch_size, feat_dim).
             targets (torch.LongTensor): ground truth labels with shape (num_classes).
         """
+        #print(inputs.size())
         n = inputs.size(0)
 
         # Compute pairwise distance, replace by the official when merged
