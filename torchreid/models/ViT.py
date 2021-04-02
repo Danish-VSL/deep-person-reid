@@ -42,7 +42,7 @@ def _cfg(url='', **kwargs):
         'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': None,
         'crop_pct': .9, 'interpolation': 'bicubic',
         'mean': IMAGENET_DEFAULT_MEAN, 'std': IMAGENET_DEFAULT_STD,
-        'first_conv': 'patch_embed.proj', 'classifier': 'head',
+        'first_conv': 'patch_embed.proj', 'classifier': ['head_dist', 'head'],
         **kwargs
     }
 
@@ -184,7 +184,7 @@ class Attention(nn.Module):
 
 class Block(nn.Module):
 
-    def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
+    def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0.2, attn_drop=0.2,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -198,24 +198,25 @@ class Block(nn.Module):
         # self.IN1 = nn.InstanceNorm2d(dim, affine=True)
         # SNR
         # print(embed_dim)
-        self.snrIN = nn.InstanceNorm1d(dim, affine=True)
-        self.SNR = ChannelGate_sub(dim, num_gates=dim, return_gates=False,
-                                   gate_activation='sigmoid', reduction=16, layer_norm=False)
+        # self.snrIN = nn.InstanceNorm1d(dim, affine=True)
+        # self.SNR = ChannelGate_sub(dim, num_gates=dim, return_gates=False,
+        #                            gate_activation='sigmoid', reduction=16, layer_norm=False)
 
     def forward(self, x):
         x = x + self.drop_path(self.attn(self.norm1(x)))
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         # x_1_ori = x
         #print(x.shape)
-        x_IN_1 = self.snrIN(torch.transpose(x, 1, 2))
-        #print(x_IN_1.shape)
-        x_style_1 = x - torch.transpose(x_IN_1, 1, 2)
-        #print(x_style_1.shape)
-        x_style_1_reid_useful, x_style_1_reid_useless, selective_weight_useful_1 = self.SNR(torch.transpose(x_style_1,1,2))
-        x = x_IN_1 + x_style_1_reid_useful
-        # x_1_useless = x_IN_1 + x_style_1_reid_useless
-        #print(x.shape)
-        return torch.transpose(x, 1, 2)
+        # x_IN_1 = self.snrIN(torch.transpose(x, 1, 2))
+        # #print(x_IN_1.shape)
+        # x_style_1 = x - torch.transpose(x_IN_1, 1, 2)
+        # #print(x_style_1.shape)
+        # x_style_1_reid_useful, x_style_1_reid_useless, selective_weight_useful_1 = self.SNR(torch.transpose(x_style_1,1,2))
+        # x = x_IN_1 + x_style_1_reid_useful
+        # # x_1_useless = x_IN_1 + x_style_1_reid_useless
+        # #print(x.shape)
+        # return torch.transpose(x, 1, 2)
+        return x
 
 
 class PatchEmbed(nn.Module):
@@ -294,7 +295,7 @@ class VisionTransformer(nn.Module):
     def __init__(self, img_size=224, loss='softmax', patch_size=16, in_chans=3, num_classes=1000, embed_dim=768,
                  depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=True, qk_scale=None, representation_size=None,
-                 drop_rate=0., attn_drop_rate=0., drop_path_rate=0., hybrid_backbone=None, norm_layer=None, **kwargs):
+                 drop_rate=0.2, attn_drop_rate=0.2, drop_path_rate=0., hybrid_backbone=None, norm_layer=None, **kwargs):
         """
         Args:
             img_size (int, tuple): input image size
@@ -345,14 +346,15 @@ class VisionTransformer(nn.Module):
         if representation_size:
             self.num_features = representation_size
             self.pre_logits = nn.Sequential(OrderedDict([
-                ('fc', nn.Linear(embed_dim, representation_size)),
+                ('fc', nn.Linear(embed_dim, embed_dim)),
                 ('act', nn.Tanh())
             ]))
         else:
             self.pre_logits = nn.Identity()
 
         # Classifier head
-        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        #self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
@@ -436,7 +438,7 @@ class ChannelGate_sub(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.fc2 = nn.Conv1d(in_channels // reduction, num_gates, kernel_size=1, bias=True, padding=0)
         if gate_activation == 'sigmoid':
-            self.gate_activation = nn.Sigmoid()
+            self.gate_activation = nn.Sinum_classesgmoid()
         elif gate_activation == 'relu':
             self.gate_activation = nn.ReLU(inplace=True)
         elif gate_activation == 'linear':
@@ -476,6 +478,7 @@ class DistilledVisionTransformer(VisionTransformer):
         num_patches = self.patch_embed.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 2, self.embed_dim))
         self.head_dist = nn.Linear(self.embed_dim, self.num_classes) if self.num_classes > 0 else nn.Identity()
+        #self.head_dist = nn.Linear(self.embed_dim, 1000) if self.num_classes > 0 else nn.Identity()
 
         trunc_normal_(self.dist_token, std=.02)
         trunc_normal_(self.pos_embed, std=.02)
@@ -500,6 +503,7 @@ class DistilledVisionTransformer(VisionTransformer):
 
     def forward(self, x):
         x, x_dist = self.forward_features(x)
+        #print(x.shape)
         x = self.head(x)
         x_dist = self.head_dist(x_dist)
         if self.training:
@@ -571,7 +575,7 @@ def _create_vision_transformer(variant, noofclasses, imagesize, loss, pretrained
     if pretrained:
         load_pretrained(
             model, num_classes=num_classes, in_chans=kwargs.get('in_chans', 3),
-            filter_fn=partial(checkpoint_filter_fn, model=model))
+            filter_fn=partial(checkpoint_filter_fn, model=model), strict=False)
         print('Loaded pretrained vit model from url')
         print(model)
     return model
@@ -862,13 +866,15 @@ def vit_deit_small_distilled_patch16_224(pretrained=False, **kwargs):
 
 
 @register_model
-def vit_deit_base_distilled_patch16_224(num_classes, imagesize, pretrained=False, **kwargs):
+def vit_deit_base_distilled_patch16_224(num_classes, imagesize, loss='softmax', pretrained=False, **kwargs):
     """ DeiT-base distilled model @ 224x224 from paper (https://arxiv.org/abs/2012.12877).
     ImageNet-1k weights from https://github.com/facebookresearch/deit.
     """
     model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
-    model = _create_vision_transformer(
-        'vit_deit_base_distilled_patch16_224', num_classes, imagesize, pretrained=pretrained, **model_kwargs)
+    # model = _create_vision_transformer(
+    #     'vit_deit_base_distilled_patch16_224', num_classes, imagesize, pretrained=pretrained, **model_kwargs)
+    model = _create_vision_transformer('vit_deit_base_distilled_patch16_224', noofclasses=num_classes, imagesize=imagesize, loss=loss,
+                                       pretrained=True, **model_kwargs)
     return model
 
 
@@ -906,8 +912,8 @@ def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
 
 def vittimmdiet(num_classes, loss='softmax', pretrained=True, **kwargs):
     # model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=False, **kwargs)
-    # model = vit_deit_base_distilled_patch16_224(num_classes, 224, pretrained=True, distilled=True, **kwargs)
-    model = vit_base_resnet50_224_in21k(num_classes, 224, loss=loss, pretrained=True, distilled=False, **kwargs)
+    model = vit_deit_base_distilled_patch16_224(num_classes, 224, loss=loss, pretrained=True, distilled=True, **kwargs)
+    #model = vit_base_resnet50_224_in21k(num_classes, 224, loss=loss, pretrained=True, distilled=False, **kwargs)
 
     # model = ViT(
     #     image_size=256,

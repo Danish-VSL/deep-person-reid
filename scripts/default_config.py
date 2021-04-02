@@ -6,10 +6,10 @@ def get_default_config():
 
     # model
     cfg.model = CN()
-    cfg.model.name = 'vit_timm_diet'  # vit_timm byol
+    cfg.model.name = 'contrastive'  # vit_timm byol
     cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
-    cfg.model.resume = ''  # path to checkpoint for resume training log/model/model.pth.tar-14
+    cfg.model.resume = 'log/model/model.pth.tar-2'  # path to checkpoint for resume training log/model/model.pth.tar-14
 
     # data
     cfg.data = CN()
@@ -19,9 +19,9 @@ def get_default_config():
     cfg.data.targets = ['dukemtmcreid']  # dukemtmcreid
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
-    cfg.data.height = 224  # image height
-    cfg.data.width = 224  # image width
-    cfg.data.combineall = True  # combine train, query and gallery for training
+    cfg.data.height = 256  # image height
+    cfg.data.width = 256  # image width
+    cfg.data.combineall = False  # combine train, query and gallery for training
     cfg.data.transforms = ['random_flip', 'color_jitter']  # data augmentation random_flip 'color_jitter',
     cfg.data.k_tfm = 1 # number of times to apply augmentation to an image independently
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
@@ -53,18 +53,18 @@ def get_default_config():
 
     # train
     cfg.train = CN()
-    cfg.train.optim = 'sgd'
+    cfg.train.optim = 'adam'
     cfg.train.lr = 0.0003
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
-    cfg.train.start_epoch = 0
+    cfg.train.start_epoch = 3
     cfg.train.batch_size = 16
-    cfg.train.fixbase_epoch = 20  # number of epochs to fix base layers
+    cfg.train.fixbase_epoch = 0  # number of epochs to fix base layers
     cfg.train.open_layers = [
-       'snrIN', 'SNR', 'pre_logits', 'head'
-    ]  # layers for training while keeping others frozen
+       ''
+    ]  # layers for training while keeping others frozen 'snrIN', 'SNR', 'pre_logits'
     cfg.train.staged_lr = False  # set different lr to different layers
-    cfg.train.new_layers = ['head']  # newly added layers with default lr
+    cfg.train.new_layers = ['']  # newly added layers with default lr
     cfg.train.base_lr_mult = 0.1  # learning rate multiplier for base layers
     cfg.train.lr_scheduler = 'single_step'
     cfg.train.stepsize = [20]  # stepsize to decay learning rate
@@ -90,7 +90,7 @@ def get_default_config():
     cfg.loss.softmax.label_smooth = True  # use label smoothing regularizer
     cfg.loss.triplet = CN()
     cfg.loss.triplet.margin = 0.3#distance margin
-    cfg.loss.triplet.weight_t = 100# weight to balance hard triplet loss
+    cfg.loss.triplet.weight_t = 1# weight to balance hard triplet loss
     cfg.loss.triplet.weight_x = 1  # weight to balance cross entropy loss
 
     # test
@@ -100,7 +100,7 @@ def get_default_config():
     cfg.test.normalize_feature = True  # normalize feature vectors before computing distance
     cfg.test.ranks = [1, 5, 10, 20]  # cmc ranks
     cfg.test.evaluate = False  # test only
-    cfg.test.eval_freq = 3  # evaluation frequency (-1 means to only test after training)
+    cfg.test.eval_freq = 1  # evaluation frequency (-1 means to only test after training)
     cfg.test.start_eval = 0  # start to evaluate after a specific epoch
     cfg.test.rerank = False  # use person re-ranking
     cfg.test.visrank = False  # visualize ranked results (only available when cfg.test.evaluate=True)

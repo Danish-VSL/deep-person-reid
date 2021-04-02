@@ -28,6 +28,7 @@ from .ViT import vittimm
 from .ViT import vittimmdiet
 from .byolreid import *
 from .efficientnet import *
+from .contrastivelearner import *
 
 __model_factory = {
     # image classification models
@@ -85,7 +86,8 @@ __model_factory = {
     'vit_timm': vittimm,
     'vit_timm_diet': vittimmdiet,
     'byol': byol_vit,
-    'efficientnet': efficient
+    'efficientnet': efficient,
+    'contrastive': Contrastive
 
 }
 

@@ -1,7 +1,9 @@
 from __future__ import division, print_function, absolute_import
 
+from kornia.losses import FocalLoss
+
 from torchreid import metrics
-from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss, CenterLoss
+from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss, CenterLoss, focal_loss
 
 from ..engine import Engine
 
@@ -66,7 +68,7 @@ class ImageTripletEngine(Engine):
             optimizer,
             margin=0.3,
             weight_t=100,
-            weight_x=1,
+            weight_x=0,
             weight_r=0,
             weight_arc=0,
             weight_center=0,
@@ -98,6 +100,7 @@ class ImageTripletEngine(Engine):
         self.criterion_r = RingLoss()
         self.criterion_center = CenterLoss(num_classes=self.datamanager.num_train_pids
                                            , feat_dim=32, use_gpu=True)
+        #self.criterion_focal = FocalLoss(alpha=0.5)
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
@@ -105,17 +108,23 @@ class ImageTripletEngine(Engine):
         if self.use_gpu:
             imgs = imgs.cuda()
             pids = pids.cuda()
-
-        outputs, features = self.model(imgs)
+        #print(self.model(imgs).shape)
+        #outputs, features = self.model(imgs)
+        #labels, logits, loss
+        outputs, features, clloss = self.model(imgs)[0]
+        print(outputs.shape)
         # print(outputs.size())
         # features = self.model.module.forward(imgs, return_embedding = True)
         # print(len(features))
         # outputs, features = outputs, features
 
-        loss = 0
+        loss = clloss
         loss_summary = {}
+        loss_summary['loss_cl'] = loss.item()
+        #loss += self.compute_loss(self.criterion_focal, outputs, pids)
+        #loss_summary['loss_focal'] = loss.item()
 
-        if self.weight_t > 0:
+        if self.weight_t > 1:
             loss_t = self.compute_loss(self.criterion_t, features, pids)
             loss += self.weight_t * loss_t
             loss_summary['loss_t'] = loss_t.item()
