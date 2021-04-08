@@ -1,18 +1,31 @@
 import torch
+import torchreid
 from contrastive_learner import ContrastiveLearner
-from torchvision import models
+#from torchvision import models
 
 
-def Contrastive(num_classes, loss='softmax', pretrained=True, **kwargs):
-    resnet = models.resnet50(pretrained=True)
+
+
+def Contrastive(num_classes, loss='triplet', pretrained=True, **kwargs):
+
+    ConEncoder = torchreid.models.build_model(
+        name='vit_timm_diet',
+        num_classes=num_classes,
+        loss=loss,
+        pretrained=pretrained
+
+    )
+
+    #torchreid.utils.load_pretrained_weights(ConEncoder, '/home/danish/deep-person-reid/scripts/log/model/model.pth.tar-112')
+
     learner = ContrastiveLearner(
-        resnet,
-        image_size=256,
-        hidden_layer='avgpool',
+        ConEncoder,
+        image_size=224,
+        hidden_layer='head',
         # layer name where output is hidden dimension. this can also be an integer specifying the index of the child
         project_hidden=True,  # use projection head
         project_dim=128,  # projection head dimensions, 128 from paper
-        use_nt_xent_loss=True,  # the above mentioned loss, abbreviated
+        use_nt_xent_loss=False,  # the above mentioned loss, abbreviated
         temperature=0.1,  # temperature
         augment_both=True  # augment both query and key
     )

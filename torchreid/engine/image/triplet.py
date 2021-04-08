@@ -67,8 +67,8 @@ class ImageTripletEngine(Engine):
             model,
             optimizer,
             margin=0.3,
-            weight_t=100,
-            weight_x=0,
+            weight_t=10,
+            weight_x=1,
             weight_r=0,
             weight_arc=0,
             weight_center=0,
@@ -111,8 +111,13 @@ class ImageTripletEngine(Engine):
         #print(self.model(imgs).shape)
         #outputs, features = self.model(imgs)
         #labels, logits, loss
-        outputs, features, clloss = self.model(imgs)[0]
-        print(outputs.shape)
+        outputscon, featurescon = self.model(imgs)
+        clloss = outputscon
+        features = featurescon
+        outputs = featurescon
+        # print(outputs.shape)
+        # print(features.shape)
+        # print(clloss)
         # print(outputs.size())
         # features = self.model.module.forward(imgs, return_embedding = True)
         # print(len(features))
@@ -124,10 +129,11 @@ class ImageTripletEngine(Engine):
         #loss += self.compute_loss(self.criterion_focal, outputs, pids)
         #loss_summary['loss_focal'] = loss.item()
 
-        if self.weight_t > 1:
+        if self.weight_t > 0:
             loss_t = self.compute_loss(self.criterion_t, features, pids)
-            loss += self.weight_t * loss_t
-            loss_summary['loss_t'] = loss_t.item()
+            #loss += self.weight_t * loss_t
+            loss += 10 * loss_t
+            loss_summary['loss_t'] = loss_t.item() * 10
             #print(loss)
 
         if self.weight_x > 0:

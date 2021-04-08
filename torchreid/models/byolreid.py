@@ -5,14 +5,15 @@ import torchvision
 from torch import nn
 import kornia
 
-from torchreid.models import vittimm
+from torchreid.models import vittimm, vittimmdiet
 
 
 def byol_vit(num_classes, loss='softmax', pretrained=True, **kwargs):
-    vit = vittimm(2048, loss=loss, pretrained=pretrained, **kwargs)
+    vit = vittimmdiet(num_classes, loss=loss, pretrained=pretrained, **kwargs)
 
     augment_fn = nn.Sequential(
-        kornia.augmentation.RandomHorizontalFlip()
+        kornia.augmentation.RandomMixUp(),
+        kornia.augmentation.Normalize()
     )
 
     augment_fn2 = nn.Sequential(
@@ -32,7 +33,7 @@ def byol_vit(num_classes, loss='softmax', pretrained=True, **kwargs):
         augment_fn2=augment_fn2,
     )
 
-    print(learner)
+    #print(learner)
     return learner
 
     # opt = torch.optim.Adam(learner.parameters(), lr=3e-4)

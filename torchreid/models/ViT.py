@@ -32,6 +32,7 @@ from timm.models.layers import StdConv2dSame, DropPath, to_2tuple, trunc_normal_
 from timm.models.resnet import resnet26d, resnet50d
 from timm.models.resnetv2 import ResNetV2
 from timm.models.registry import register_model
+from timm.models.efficientnet import tf_efficientnet_b5_ns
 
 _logger = logging.getLogger(__name__)
 
@@ -42,9 +43,9 @@ def _cfg(url='', **kwargs):
         'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': None,
         'crop_pct': .9, 'interpolation': 'bicubic',
         'mean': IMAGENET_DEFAULT_MEAN, 'std': IMAGENET_DEFAULT_STD,
-        'first_conv': 'patch_embed.proj', 'classifier': ['head_dist', 'head'],
+        'first_conv': 'patch_embed.proj', 'classifier': 'head',
         **kwargs
-    }
+    }#'head_dist',
 
 
 default_cfgs = {
@@ -346,15 +347,15 @@ class VisionTransformer(nn.Module):
         if representation_size:
             self.num_features = representation_size
             self.pre_logits = nn.Sequential(OrderedDict([
-                ('fc', nn.Linear(embed_dim, embed_dim)),
+                ('fc', nn.Linear(embed_dim, self.num_features)),
                 ('act', nn.Tanh())
             ]))
         else:
             self.pre_logits = nn.Identity()
 
         # Classifier head
-        #self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
-        self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        #self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
@@ -737,6 +738,7 @@ def vit_base_resnet50_224_in21k(noofclasses, imagesize, loss, pretrained=False, 
     ImageNet-21k weights @ 224x224, source https://github.com/google-research/vision_transformer.
     """
     # create a ResNetV2 w/o pre-activation, that uses StdConv and GroupNorm and has 3 stages, no head
+    #backbone = efficientnet_b5 (pretrained=True)
     backbone = ResNetV2(
         layers=(3, 4, 9), num_classes=0, global_pool='', in_chans=kwargs.get('in_chans', 3),
         preact=False, stem_type='same', conv_layer=StdConv2dSame)
@@ -757,7 +759,7 @@ def vit_base_resnet50_384(pretrained=False, **kwargs):
     backbone = ResNetV2(
         layers=(3, 4, 9), num_classes=0, global_pool='', in_chans=kwargs.get('in_chans', 3),
         preact=False, stem_type='same', conv_layer=StdConv2dSame)
-    model_kwargs = dict(embed_dim=768, depth=12, num_heads=12, hybrid_backbone=backbone, **kwargs)
+    model_kwargs = dict(embed_dim=1024, depth=12, num_heads=12, hybrid_backbone=backbone, **kwargs)
     model = _create_vision_transformer('vit_base_resnet50_384', pretrained=pretrained, **model_kwargs)
     return model
 
@@ -912,8 +914,8 @@ def vittimm(num_classes, loss='softmax', pretrained=True, **kwargs):
 
 def vittimmdiet(num_classes, loss='softmax', pretrained=True, **kwargs):
     # model = vit_deit_base_patch16_224(num_classes, 224, pretrained=True, distilled=False, **kwargs)
-    model = vit_deit_base_distilled_patch16_224(num_classes, 224, loss=loss, pretrained=True, distilled=True, **kwargs)
-    #model = vit_base_resnet50_224_in21k(num_classes, 224, loss=loss, pretrained=True, distilled=False, **kwargs)
+    #model = vit_deit_base_distilled_patch16_224(num_classes, 224, loss=loss, pretrained=True, distilled=True, **kwargs)
+    model = vit_base_resnet50_224_in21k(num_classes, 224, loss=loss, pretrained=True, distilled=False, **kwargs)
 
     # model = ViT(
     #     image_size=256,
