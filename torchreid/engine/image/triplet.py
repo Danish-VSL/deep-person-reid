@@ -1,5 +1,5 @@
 from __future__ import division, print_function, absolute_import
-
+import torch
 from kornia.losses import FocalLoss
 
 from torchreid import metrics
@@ -111,10 +111,11 @@ class ImageTripletEngine(Engine):
         #print(self.model(imgs).shape)
         #outputs, features = self.model(imgs)
         #labels, logits, loss
-        outputscon, featurescon = self.model(imgs)
-        clloss = outputscon
+        conloss, outputscon, featurescon = self.model(imgs)
+        clloss = conloss
         features = featurescon
-        outputs = featurescon
+        outputs = outputscon
+        #print(outputs)
         # print(outputs.shape)
         # print(features.shape)
         # print(clloss)
@@ -123,17 +124,17 @@ class ImageTripletEngine(Engine):
         # print(len(features))
         # outputs, features = outputs, features
 
-        loss = clloss
+        loss = 0
         loss_summary = {}
-        loss_summary['loss_cl'] = loss.item()
+        #loss_summary['loss_cl'] = loss.item()
         #loss += self.compute_loss(self.criterion_focal, outputs, pids)
         #loss_summary['loss_focal'] = loss.item()
 
         if self.weight_t > 0:
             loss_t = self.compute_loss(self.criterion_t, features, pids)
-            #loss += self.weight_t * loss_t
-            loss += 10 * loss_t
-            loss_summary['loss_t'] = loss_t.item() * 10
+            loss += self.weight_t * loss_t
+            #loss += 10 * loss_t
+            loss_summary['loss_t'] = loss_t.item()
             #print(loss)
 
         if self.weight_x > 0:
@@ -154,9 +155,16 @@ class ImageTripletEngine(Engine):
             loss_summary['loss_center'] = loss_center.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
+        #losscontrast = clloss
+        #loss += losscontrast
+        #loss_summary['loss_contrast'] = losscontrast.item()
+        #loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
+
         assert loss_summary
 
         self.optimizer.zero_grad()
+        loss.requres_grad = True
+        print(loss)
         loss.backward()
         self.optimizer.step()
 

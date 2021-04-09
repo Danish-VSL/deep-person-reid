@@ -214,28 +214,40 @@ def open_specified_layers(model, open_layers):
     #     )
 
     for name, module in model.named_children():
-        #print(name)
-        if name == 'net':
-            for name ,module in module.named_children():
-                for name, module in module.named_children():
-                    #print(name)
-                    if name in open_layers:
-                        module.train()
-                        for p in module.parameters():
-                            print(name)
-                            p.requires_grad = True
-                # # for name, module in module.named_children():
-                #     print(name)
-                #     if name in open_layers:
-                #         module.train()
-                #         for p in module.parameters():
-                #             #print(name)
-                #             p.requires_grad = True
-        #print(name)
+        print(name)
         if name in open_layers:
             module.train()
             for p in module.parameters():
-                print(name)
+                print('open', name)
+                p.requires_grad = True
+        if(name != 'target_encoder'):
+            for name ,module in module.named_children():
+                print('inside parent' , name)
+                #for name, module in module.named_children():
+                     #print(name)
+                if name in open_layers:
+                    module.train()
+                    for p in module.parameters():
+                        print('open', name)
+                        p.requires_grad = True
+                if(name == 'projector'):
+                    for name, module in module.named_children():
+                        if name in open_layers:
+                            module.train()
+                            for p in module.parameters():
+                                print('open', name)
+                                p.requires_grad = True
+                        for name, module in module.named_children():
+                            if name in open_layers:
+                                module.train()
+                                for p in module.parameters():
+                                    print('open', name)
+                                    p.requires_grad = True
+    #print(name)
+        if name in open_layers:
+            module.train()
+            for p in module.parameters():
+                print('open', name)
                 p.requires_grad = True
         else:
             module.eval()

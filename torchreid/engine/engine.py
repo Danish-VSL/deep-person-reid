@@ -442,7 +442,7 @@ class Engine(object):
         return loss
 
     def extract_features(self, input):
-        return self.model(input)[1]
+        return self.model(input)[2]
 
     def parse_data_for_train(self, data):
         imgs = data['img']

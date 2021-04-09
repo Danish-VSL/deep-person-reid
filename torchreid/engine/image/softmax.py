@@ -56,13 +56,13 @@ class ImageSoftmaxEngine(Engine):
     """
 
     def __init__(
-        self,
-        datamanager,
-        model,
-        optimizer,
-        scheduler=None,
-        use_gpu=True,
-        label_smooth=True
+            self,
+            datamanager,
+            model,
+            optimizer,
+            scheduler=None,
+            use_gpu=True,
+            label_smooth=True
     ):
         super(ImageSoftmaxEngine, self).__init__(datamanager, use_gpu)
 
@@ -76,20 +76,20 @@ class ImageSoftmaxEngine(Engine):
             use_gpu=self.use_gpu,
             label_smooth=label_smooth
         )
-        print(self.model)
+        # print(self.model)
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
-        #imgs = torch.tensor(imgs)
-        #print(data)
+        # imgs = torch.tensor(imgs)
+        # print(data)
 
         if self.use_gpu:
             imgs = imgs.cuda()
             pids = pids.cuda()
 
-        outputs = self.model(imgs)
-        loss = self.compute_loss(self.criterion, outputs, pids)
-
+        cl, outputs, features = self.model(imgs)
+        ##loss = self.compute_loss(self.criterion, outputs, pids)
+        loss = cl
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -101,4 +101,5 @@ class ImageSoftmaxEngine(Engine):
 
         return loss_summary
 
-
+    def extract_features(self, input):
+        return self.model(input, evaluate=True)[2]

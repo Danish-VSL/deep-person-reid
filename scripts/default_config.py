@@ -6,7 +6,7 @@ def get_default_config():
 
     # model
     cfg.model = CN()
-    cfg.model.name = 'contrastive'  # vit_timm byol
+    cfg.model.name = 'byol'  # vit_timm byol vit_timm_diet
     cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
     cfg.model.resume = ''  # path to checkpoint for resume training log/model/model.pth.tar-14
@@ -21,7 +21,7 @@ def get_default_config():
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
     cfg.data.width = 224  # image width
-    cfg.data.combineall = True  # combine train, query and gallery for training
+    cfg.data.combineall = False  # combine train, query and gallery for training
     cfg.data.transforms = ['color_jitter', 'random_flip']  # data augmentation random_flip 'color_jitter',
     cfg.data.k_tfm = 1  # number of times to apply augmentation to an image independently
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
@@ -41,7 +41,7 @@ def get_default_config():
     cfg.sampler = CN()
     cfg.sampler.train_sampler = 'RandomSampler'  # sampler for source train loader
     cfg.sampler.train_sampler_t = 'RandomSampler'  # sampler for target train loader
-    cfg.sampler.num_instances = 1  # number of instances per identity for RandomIdentitySampler
+    cfg.sampler.num_instances = 2  # number of instances per identity for RandomIdentitySampler
     cfg.sampler.num_cams = 1  # number of cameras to sample in a batch (for RandomDomainSampler)
     cfg.sampler.num_datasets = 1  # number of datasets to sample in a batch (for RandomDatasetSampler)
 
@@ -58,13 +58,13 @@ def get_default_config():
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
     cfg.train.start_epoch =0
-    cfg.train.batch_size = 4
+    cfg.train.batch_size =6
     cfg.train.fixbase_epoch = 20  # number of epochs to fix base layers
     cfg.train.open_layers = [
-      'norm', 'pre_logits', 'head'
+      'online_predictor','norm', 'pre_logits', 'head', 'projector'
     ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection'
-    cfg.train.staged_lr = True  # set different lr to different layers
-    cfg.train.new_layers = ['head']  # newly added layers with default lr
+    cfg.train.staged_lr = False  # set different lr to different layers
+    cfg.train.new_layers = ['']  # newly added layers with default lr
     cfg.train.base_lr_mult = 0.1  # learning rate multiplier for base layers
     cfg.train.lr_scheduler = 'single_step'
     cfg.train.stepsize = [20]  # stepsize to decay learning rate
@@ -85,12 +85,12 @@ def get_default_config():
 
     # loss
     cfg.loss = CN()
-    cfg.loss.name = 'triplet'
+    cfg.loss.name = 'softmax'
     cfg.loss.softmax = CN()
     cfg.loss.softmax.label_smooth = True  # use label smoothing regularizer
     cfg.loss.triplet = CN()
     cfg.loss.triplet.margin = 0.3  # distance margin
-    cfg.loss.triplet.weight_t = 10  # weight to balance hard triplet loss
+    cfg.loss.triplet.weight_t = 0  # weight to balance hard triplet loss
     cfg.loss.triplet.weight_x = 1  # weight to balance cross entropy loss
 
     # test
