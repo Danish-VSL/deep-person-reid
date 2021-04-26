@@ -6,32 +6,33 @@ def get_default_config():
 
     # model
     cfg.model = CN()
-    cfg.model.name = 'byol'  # vit_timm byol vit_timm_diet
+    cfg.model.name = 'vit_timm_diet'  # vit_timm byol vit_timm_diet
     cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
-    cfg.model.resume = ''  # path to checkpoint for resume training log/model/model.pth.tar-14
+    cfg.model.resume = 'log/model/model.pth.tar-8'  # path to checkpoint for resume training log/model/model.pth.tar-14
 
     # data
     cfg.data = CN()
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['dukemtmcreid']  # dukemtmcreid
+    cfg.data.targets = ['dukemtmcreid']  #
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
     cfg.data.width = 224  # image width
-    cfg.data.combineall = False  # combine train, query and gallery for training
-    cfg.data.transforms = ['color_jitter', 'random_flip']  # data augmentation random_flip 'color_jitter',
-    cfg.data.k_tfm = 1  # number of times to apply augmentation to an image independently
+    cfg.data.combineall = True  # combine train, query and gallery for training
+    cfg.data.transforms = ['random_crop', 'color_jitter',
+                           'random_flip', 'random_erase', 'gray_scale']  # data augmentation random_flip 'color_jitter',
+    cfg.data.k_tfm = 2  # number of times to apply augmentation to an image independently
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
     cfg.data.norm_std = [0.229, 0.224, 0.225]  # default is imagenet std
     cfg.data.save_dir = 'log'  # path to save log
-    cfg.data.load_train_targets = False  # load training set from target dataset
+    cfg.data.load_train_targets = True  # load training set from target dataset
 
     # specific datasets
     cfg.market1501 = CN()
-    cfg.market1501.use_500k_distractors = False  # add 500k distractors to the gallery set for market1501
+    cfg.market1501.use_500k_distractors = True  # add 500k distractors to the gallery set for market1501
     cfg.cuhk03 = CN()
     cfg.cuhk03.labeled_images = False  # use labeled images, if False, use detected images
     cfg.cuhk03.classic_split = False  # use classic split by Li et al. CVPR14
@@ -41,9 +42,9 @@ def get_default_config():
     cfg.sampler = CN()
     cfg.sampler.train_sampler = 'RandomSampler'  # sampler for source train loader
     cfg.sampler.train_sampler_t = 'RandomSampler'  # sampler for target train loader
-    cfg.sampler.num_instances = 2  # number of instances per identity for RandomIdentitySampler
-    cfg.sampler.num_cams = 1  # number of cameras to sample in a batch (for RandomDomainSampler)
-    cfg.sampler.num_datasets = 1  # number of datasets to sample in a batch (for RandomDatasetSampler)
+    cfg.sampler.num_instances = 4  # number of instances per identity for RandomIdentitySampler
+    cfg.sampler.num_cams = 2  # number of cameras to sample in a batch (for RandomDomainSampler)
+    cfg.sampler.num_datasets = 2  # number of datasets to sample in a batch (for RandomDatasetSampler)
 
     # video reid setting
     cfg.video = CN()
@@ -57,12 +58,12 @@ def get_default_config():
     cfg.train.lr = 0.0003
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
-    cfg.train.start_epoch =0
-    cfg.train.batch_size =6
+    cfg.train.start_epoch = 9
+    cfg.train.batch_size = 16
     cfg.train.fixbase_epoch = 20  # number of epochs to fix base layers
     cfg.train.open_layers = [
-      'online_predictor','norm', 'pre_logits', 'head', 'projector'
-    ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection'
+         '11','norm', 'pre_logits', 'head'
+    ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection','vitblocks',
     cfg.train.staged_lr = False  # set different lr to different layers
     cfg.train.new_layers = ['']  # newly added layers with default lr
     cfg.train.base_lr_mult = 0.1  # learning rate multiplier for base layers
@@ -85,12 +86,12 @@ def get_default_config():
 
     # loss
     cfg.loss = CN()
-    cfg.loss.name = 'softmax'
+    cfg.loss.name = 'triplet'
     cfg.loss.softmax = CN()
     cfg.loss.softmax.label_smooth = True  # use label smoothing regularizer
     cfg.loss.triplet = CN()
-    cfg.loss.triplet.margin = 0.3  # distance margin
-    cfg.loss.triplet.weight_t = 0  # weight to balance hard triplet loss
+    cfg.loss.triplet.margin = 0.5  # distance margin
+    cfg.loss.triplet.weight_t = 10  # weight to balance hard triplet loss
     cfg.loss.triplet.weight_x = 1  # weight to balance cross entropy loss
 
     # test

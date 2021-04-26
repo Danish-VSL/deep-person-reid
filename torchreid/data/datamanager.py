@@ -58,6 +58,7 @@ class DataManager(object):
             norm_std=norm_std
         )
 
+
         self.use_gpu = (torch.cuda.is_available() and use_gpu)
 
     @property

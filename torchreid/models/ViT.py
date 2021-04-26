@@ -332,6 +332,7 @@ class VisionTransformer(nn.Module):
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -347,19 +348,20 @@ class VisionTransformer(nn.Module):
         if representation_size:
             self.num_features = representation_size
             self.pre_logits = nn.Sequential(OrderedDict([
-                ('fc', nn.Linear(embed_dim, self.num_features)),
+                ('fc', nn.Linear(embed_dim, representation_size)),
                 ('act', nn.Tanh())
             ]))
         else:
             self.pre_logits = nn.Identity()
 
         # Classifier head
-        self.head = nn.Linear(self.num_features, self.num_classes) if num_classes > 0 else nn.Identity()
-        #self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        #self.head = nn.Linear(embed_dim, 128) if num_classes > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
         self.apply(self._init_weights)
+
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -383,15 +385,21 @@ class VisionTransformer(nn.Module):
 
     def forward_features(self, x):
         B = x.shape[0]
+        #print(x.shape)
         x = self.patch_embed(x)
-
+        #print(self.cls_token.shape)
+        #print(self.cls_token.expand(B, -1, -1))
         cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
+        #print(cls_tokens)
         x = torch.cat((cls_tokens, x), dim=1)
+        #print(x)
         x = x + self.pos_embed
         x = self.pos_drop(x)
 
+
         for blk in self.blocks:
             x = blk(x)
+            #print(x)
             # #x_1_ori = x
             # #print(x.shape)
             # x_IN_1 = self.snrIN(x)
@@ -408,12 +416,14 @@ class VisionTransformer(nn.Module):
 
     def forward(self, x):
         v = self.forward_features(x)
+        #print(v)
         y = self.head(v)
+        #y=v
 
         if not self.training:
             return v
 
-        if self.loss == 'softmax':
+        if self.loss == 'softmax' or self.loss == 'supcon':
             return y
         elif self.loss == 'triplet':
             return y, v
@@ -578,7 +588,7 @@ def _create_vision_transformer(variant, noofclasses, imagesize, loss, pretrained
             model, num_classes=num_classes, in_chans=kwargs.get('in_chans', 3),
             filter_fn=partial(checkpoint_filter_fn, model=model), strict=False)
         print('Loaded pretrained vit model from url')
-        print(model)
+        #print(model)
     return model
 
 

@@ -1,6 +1,5 @@
-from __future__ import division, print_function, absolute_import
 
-import torch
+from __future__ import division, print_function, absolute_import
 
 from torchreid import metrics
 from torchreid.losses import CrossEntropyLoss
@@ -10,7 +9,6 @@ from ..engine import Engine
 
 class ImageSoftmaxEngine(Engine):
     r"""Softmax-loss engine for image-reid.
-
     Args:
         datamanager (DataManager): an instance of ``torchreid.data.ImageDataManager``
             or ``torchreid.data.VideoDataManager``.
@@ -19,9 +17,8 @@ class ImageSoftmaxEngine(Engine):
         scheduler (LRScheduler, optional): if None, no learning rate decay will be performed.
         use_gpu (bool, optional): use gpu. Default is True.
         label_smooth (bool, optional): use label smoothing regularizer. Default is True.
-
     Examples::
-        
+
         import torchreid
         datamanager = torchreid.data.ImageDataManager(
             root='path/to/reid-data',
@@ -76,20 +73,17 @@ class ImageSoftmaxEngine(Engine):
             use_gpu=self.use_gpu,
             label_smooth=label_smooth
         )
-        # print(self.model)
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
-        # imgs = torch.tensor(imgs)
-        # print(data)
 
         if self.use_gpu:
             imgs = imgs.cuda()
             pids = pids.cuda()
 
-        cl, outputs, features = self.model(imgs)
-        ##loss = self.compute_loss(self.criterion, outputs, pids)
-        loss = cl
+        outputs = self.model(imgs)
+        loss = self.compute_loss(self.criterion, outputs, pids)
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -100,6 +94,3 @@ class ImageSoftmaxEngine(Engine):
         }
 
         return loss_summary
-
-    def extract_features(self, input):
-        return self.model(input, evaluate=True)[2]

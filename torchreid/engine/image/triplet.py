@@ -1,9 +1,10 @@
 from __future__ import division, print_function, absolute_import
 import torch
 from kornia.losses import FocalLoss
+#from supcon import SupConLoss
 
 from torchreid import metrics
-from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss, CenterLoss, focal_loss
+from torchreid.losses import TripletLoss, CrossEntropyLoss, RingLoss, CenterLoss, focal_loss, SupConLoss
 
 from ..engine import Engine
 
@@ -67,11 +68,12 @@ class ImageTripletEngine(Engine):
             model,
             optimizer,
             margin=0.3,
-            weight_t=10,
+            weight_t=1,
             weight_x=1,
             weight_r=0,
             weight_arc=0,
             weight_center=0,
+            weight_supcon =1,
             scheduler=None,
             use_gpu=True,
             label_smooth=True
@@ -90,6 +92,7 @@ class ImageTripletEngine(Engine):
         self.weight_r = weight_r
         self.weight_arc = weight_arc
         self.weight_center = weight_center
+        self.weight_supcon = weight_supcon
 
         self.criterion_t = TripletLoss(margin=margin)
         self.criterion_x = CrossEntropyLoss(
@@ -101,20 +104,36 @@ class ImageTripletEngine(Engine):
         self.criterion_center = CenterLoss(num_classes=self.datamanager.num_train_pids
                                            , feat_dim=32, use_gpu=True)
         #self.criterion_focal = FocalLoss(alpha=0.5)
+        self.criterion_scl = SupConLoss()
 
     def forward_backward(self, data):
         imgs, pids = self.parse_data_for_train(data)
 
+
         if self.use_gpu:
-            imgs = imgs.cuda()
+            imgs1 = imgs[0].cuda()
+            imgs2 = imgs[1].cuda()
             pids = pids.cuda()
         #print(self.model(imgs).shape)
-        #outputs, features = self.model(imgs)
+        outputs1, features1 = self.model(imgs1)
+        outputs2, features2 = self.model(imgs2)
+
+        pids2 = pids
+
+        features = torch.cat((features1, features2), 0)
+        outputs = torch.cat((outputs1, outputs2), 0)
+        pids = torch.cat((pids, pids), 0)
+
+        # print(features.shape)
+        # print(torch.reshape(features, (16,2,768)).shape)
+        # print(outputs.shape)
+        # print(pids.shape)
+
         #labels, logits, loss
-        conloss, outputscon, featurescon = self.model(imgs)
-        clloss = conloss
-        features = featurescon
-        outputs = outputscon
+        # conloss, outputscon, featurescon = self.model(imgs)
+        # clloss = conloss
+        # features = featurescon
+        # outputs = outputscon
         #print(outputs)
         # print(outputs.shape)
         # print(features.shape)
@@ -123,6 +142,8 @@ class ImageTripletEngine(Engine):
         # features = self.model.module.forward(imgs, return_embedding = True)
         # print(len(features))
         # outputs, features = outputs, features
+        losst = 0
+        lossx = 0
 
         loss = 0
         loss_summary = {}
@@ -133,6 +154,7 @@ class ImageTripletEngine(Engine):
         if self.weight_t > 0:
             loss_t = self.compute_loss(self.criterion_t, features, pids)
             loss += self.weight_t * loss_t
+            #losst += self.weight_t * loss_t
             #loss += 10 * loss_t
             loss_summary['loss_t'] = loss_t.item()
             #print(loss)
@@ -140,6 +162,7 @@ class ImageTripletEngine(Engine):
         if self.weight_x > 0:
             loss_x = self.compute_loss(self.criterion_x, outputs, pids)
             loss += self.weight_x * loss_x
+            #lossx += self.weight_x * loss_x
             loss_summary['loss_x'] = loss_x.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
@@ -155,16 +178,29 @@ class ImageTripletEngine(Engine):
             loss_summary['loss_center'] = loss_center.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
+        if self.weight_supcon > 0:
+            loss_supcon = self.compute_loss(self.criterion_scl, torch.reshape(features, (16,2,768)), pids2)
+            loss += self.weight_supcon * loss_supcon
+            loss_summary['loss_supcon'] = loss_supcon.item()
+            print('sup con',loss_supcon.item())
+            #loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
+
         #losscontrast = clloss
         #loss += losscontrast
         #loss_summary['loss_contrast'] = losscontrast.item()
         #loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
+        # if losst > 0:
+        #     loss += (losst * lossx)*2
+        # if loss < lossx:
+        #     loss = lossx
+
+        #loss_summary['loss_total'] = loss.item()
 
         assert loss_summary
 
         self.optimizer.zero_grad()
         loss.requres_grad = True
-        print(loss)
+        #print(loss)
         loss.backward()
         self.optimizer.step()
 

@@ -214,13 +214,19 @@ def open_specified_layers(model, open_layers):
     #     )
 
     for name, module in model.named_children():
-        print(name)
-        if name in open_layers:
-            module.train()
-            for p in module.parameters():
-                print('open', name)
-                p.requires_grad = True
-        if(name != 'target_encoder'):
+        print('grand parent',name)
+
+        #if name in open_layers and name != 'patch_embed':
+            # module.train()
+            # for p in module.parameters():
+            #     print('open', name)
+            #     p.requires_grad = True
+        if name != 'patch_embed':
+            if name in open_layers:
+                module.train()
+                for p in module.parameters():
+                    print('open', name)
+                    p.requires_grad = True
             for name ,module in module.named_children():
                 print('inside parent' , name)
                 #for name, module in module.named_children():
@@ -230,7 +236,7 @@ def open_specified_layers(model, open_layers):
                     for p in module.parameters():
                         print('open', name)
                         p.requires_grad = True
-                if(name == 'projector'):
+                #if(name == 'projector'):
                     for name, module in module.named_children():
                         if name in open_layers:
                             module.train()

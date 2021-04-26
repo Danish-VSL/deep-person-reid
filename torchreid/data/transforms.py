@@ -5,8 +5,9 @@ from collections import deque
 import torch
 from PIL import Image
 from torchvision.transforms import (
-    Resize, Compose, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip
+    Resize, Compose, ToTensor, Normalize, ColorJitter, RandomHorizontalFlip, RandomGrayscale
 )
+from tools import compute_mean_std
 
 
 class Random2DTranslation(object):
@@ -66,12 +67,12 @@ class RandomErasing(object):
     """
 
     def __init__(
-        self,
-        probability=0.5,
-        sl=0.02,
-        sh=0.4,
-        r1=0.3,
-        mean=[0.4914, 0.4822, 0.4465]
+            self,
+            probability=0.5,
+            sl=0.02,
+            sh=0.4,
+            r1=0.3,
+            mean=[0.4914, 0.4822, 0.4465]
     ):
         self.probability = probability
         self.mean = mean
@@ -158,15 +159,15 @@ class RandomPatch(object):
     """
 
     def __init__(
-        self,
-        prob_happen=0.5,
-        pool_capacity=50000,
-        min_sample_size=100,
-        patch_min_area=0.01,
-        patch_max_area=0.5,
-        patch_min_ratio=0.1,
-        prob_rotate=0.5,
-        prob_flip_leftright=0.5,
+            self,
+            prob_happen=0.5,
+            pool_capacity=50000,
+            min_sample_size=100,
+            patch_min_area=0.01,
+            patch_max_area=0.5,
+            patch_min_ratio=0.1,
+            prob_rotate=0.5,
+            prob_flip_leftright=0.5,
     ):
         self.prob_happen = prob_happen
 
@@ -203,7 +204,7 @@ class RandomPatch(object):
         return patch
 
     def __call__(self, img):
-        W, H = img.size # original image size
+        W, H = img.size  # original image size
 
         # collect new patch
         w, h = self.generate_wh(W, H)
@@ -231,12 +232,12 @@ class RandomPatch(object):
 
 
 def build_transforms(
-    height,
-    width,
-    transforms='random_flip',
-    norm_mean=[0.485, 0.456, 0.406],
-    norm_std=[0.229, 0.224, 0.225],
-    **kwargs
+        height,
+        width,
+        transforms='random_flip',
+        norm_mean=[0.485, 0.456, 0.406],
+        norm_std=[0.229, 0.224, 0.225],
+        **kwargs
 ):
     """Builds train and test transform functions.
 
@@ -266,6 +267,7 @@ def build_transforms(
         transforms = [t.lower() for t in transforms]
 
     if norm_mean is None or norm_std is None:
+        #norm_mean, norm_std = compute_mean_std.main()
         norm_mean = [0.485, 0.456, 0.406] # imagenet mean
         norm_std = [0.229, 0.224, 0.225] # imagenet std
     normalize = Normalize(mean=norm_mean, std=norm_std)
@@ -309,6 +311,10 @@ def build_transforms(
     if 'random_erase' in transforms:
         print('+ random erase')
         transform_tr += [RandomErasing(mean=norm_mean)]
+
+    if 'gray_scale' in transforms:
+        print('+ gray scale')
+        transform_tr += [RandomGrayscale(p=0.2)]
 
     transform_tr = Compose(transform_tr)
 

@@ -378,7 +378,7 @@ class Engine(object):
 
         print('Extracting features from query set ...')
         qf, q_pids, q_camids = _feature_extraction(query_loader)
-        #print(qf.shape)
+        print(qf.shape)
         print('Done, obtained {}-by-{} matrix'.format(qf.size(0), qf.size(1)))
 
         print('Extracting features from gallery set ...')
@@ -442,7 +442,7 @@ class Engine(object):
         return loss
 
     def extract_features(self, input):
-        return self.model(input)[2]
+        return self.model(input)
 
     def parse_data_for_train(self, data):
         imgs = data['img']
