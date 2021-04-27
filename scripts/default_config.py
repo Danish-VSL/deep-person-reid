@@ -28,7 +28,7 @@ def get_default_config():
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
     cfg.data.norm_std = [0.229, 0.224, 0.225]  # default is imagenet std
     cfg.data.save_dir = 'log'  # path to save log
-    cfg.data.load_train_targets = True  # load training set from target dataset
+    cfg.data.load_train_targets = False  # load training set from target dataset
 
     # specific datasets
     cfg.market1501 = CN()

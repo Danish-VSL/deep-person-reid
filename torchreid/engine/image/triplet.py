@@ -178,11 +178,11 @@ class ImageTripletEngine(Engine):
             loss_summary['loss_center'] = loss_center.item()
             loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
-        if self.weight_supcon > 0:
-            loss_supcon = self.compute_loss(self.criterion_scl, torch.reshape(features, (16,2,768)), pids2)
-            loss += self.weight_supcon * loss_supcon
-            loss_summary['loss_supcon'] = loss_supcon.item()
-            print('sup con',loss_supcon.item())
+        # if self.weight_supcon > 0:
+        #     loss_supcon = self.compute_loss(self.criterion_scl, torch.reshape(features, (16,2,768)), pids2)
+        #     loss += self.weight_supcon * loss_supcon
+        #     loss_summary['loss_supcon'] = loss_supcon.item()
+        #     print('sup con',loss_supcon.item())
             #loss_summary['acc'] = metrics.accuracy(outputs, pids)[0].item()
 
         #losscontrast = clloss
