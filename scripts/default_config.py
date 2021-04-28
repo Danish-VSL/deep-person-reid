@@ -9,22 +9,22 @@ def get_default_config():
     cfg.model.name = 'vit_timm_diet'  # vit_timm byol vit_timm_diet
     cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
-    cfg.model.resume = 'log/model/model.pth.tar-8'  # path to checkpoint for resume training log/model/model.pth.tar-14
+    cfg.model.resume = 'log/model/model.pth.tar-32'  # path to checkpoint for resume training log/model/model.pth.tar-14
 
     # data
     cfg.data = CN()
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['dukemtmcreid']  #
+    cfg.data.targets = ['market1501']  #dukemtmcreid
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
     cfg.data.width = 224  # image width
     cfg.data.combineall = True  # combine train, query and gallery for training
-    cfg.data.transforms = ['random_crop', 'color_jitter',
-                           'random_flip', 'random_erase', 'gray_scale']  # data augmentation random_flip 'color_jitter',
-    cfg.data.k_tfm = 2  # number of times to apply augmentation to an image independently
+    cfg.data.transforms = ['color_jitter',
+                           'random_flip', 'random_crop', 'gray_scale']  # data augmentation random_flip 'color_jitter',
+    cfg.data.k_tfm = 1  # number of times to apply augmentation to an image independently
     cfg.data.norm_mean = [0.485, 0.456, 0.406]  # default is imagenet mean
     cfg.data.norm_std = [0.229, 0.224, 0.225]  # default is imagenet std
     cfg.data.save_dir = 'log'  # path to save log
@@ -58,11 +58,11 @@ def get_default_config():
     cfg.train.lr = 0.0003
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
-    cfg.train.start_epoch = 9
-    cfg.train.batch_size = 16
-    cfg.train.fixbase_epoch = 20  # number of epochs to fix base layers
+    cfg.train.start_epoch = 33
+    cfg.train.batch_size = 32
+    cfg.train.fixbase_epoch = 40  # number of epochs to fix base layers
     cfg.train.open_layers = [
-         '11','norm', 'pre_logits', 'head'
+         'norm', 'pre_logits', 'head'
     ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection','vitblocks',
     cfg.train.staged_lr = False  # set different lr to different layers
     cfg.train.new_layers = ['']  # newly added layers with default lr

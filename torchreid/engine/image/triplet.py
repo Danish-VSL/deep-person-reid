@@ -111,18 +111,18 @@ class ImageTripletEngine(Engine):
 
 
         if self.use_gpu:
-            imgs1 = imgs[0].cuda()
-            imgs2 = imgs[1].cuda()
+            imgs1 = imgs.cuda()
+            # imgs2 = imgs[1].cuda()
             pids = pids.cuda()
         #print(self.model(imgs).shape)
-        outputs1, features1 = self.model(imgs1)
-        outputs2, features2 = self.model(imgs2)
+        outputs, features = self.model(imgs1)
+        #outputs2, features2 = self.model(imgs2)
 
-        pids2 = pids
+        #pids2 = pids
 
-        features = torch.cat((features1, features2), 0)
-        outputs = torch.cat((outputs1, outputs2), 0)
-        pids = torch.cat((pids, pids), 0)
+        # features = torch.cat((features1, features2), 0)
+        # outputs = torch.cat((outputs1, outputs2), 0)
+        # pids = torch.cat((pids, pids), 0)
 
         # print(features.shape)
         # print(torch.reshape(features, (16,2,768)).shape)
