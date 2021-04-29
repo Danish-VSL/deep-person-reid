@@ -16,7 +16,7 @@ def get_default_config():
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['dukemtmcreid']  #dukemtmcreid
+    cfg.data.targets = ['market1501']  #dukemtmcreid
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
@@ -58,9 +58,9 @@ def get_default_config():
     cfg.train.lr = 0.0003
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
-    cfg.train.start_epoch = 37
+    cfg.train.start_epoch = 39
     cfg.train.batch_size = 32
-    cfg.train.fixbase_epoch = 40  # number of epochs to fix base layers
+    cfg.train.fixbase_epoch = 50  # number of epochs to fix base layers
     cfg.train.open_layers = [
          '11','norm', 'pre_logits', 'head'
     ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection','vitblocks',
