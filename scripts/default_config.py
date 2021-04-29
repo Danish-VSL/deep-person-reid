@@ -9,14 +9,14 @@ def get_default_config():
     cfg.model.name = 'vit_timm_diet'  # vit_timm byol vit_timm_diet
     cfg.model.pretrained = True  # automatically load pretrained model weights if available
     cfg.model.load_weights = ''  # path to model weights
-    cfg.model.resume = 'log/model/model.pth.tar-32'  # path to checkpoint for resume training log/model/model.pth.tar-14
+    cfg.model.resume = 'log/model/model.pth.tar-38'  # path to checkpoint for resume training log/model/model.pth.tar-14
 
     # data
     cfg.data = CN()
     cfg.data.type = 'image'
     cfg.data.root = 'reid-data'
     cfg.data.sources = ['market1501']
-    cfg.data.targets = ['market1501']  #dukemtmcreid
+    cfg.data.targets = ['dukemtmcreid']  #dukemtmcreid
     cfg.data.workers = 4  # number of data loading workers
     cfg.data.split_id = 0  # split index
     cfg.data.height = 224  # image height
@@ -58,11 +58,11 @@ def get_default_config():
     cfg.train.lr = 0.0003
     cfg.train.weight_decay = 5e-4
     cfg.train.max_epoch = 60
-    cfg.train.start_epoch = 33
+    cfg.train.start_epoch = 37
     cfg.train.batch_size = 32
     cfg.train.fixbase_epoch = 40  # number of epochs to fix base layers
     cfg.train.open_layers = [
-         'norm', 'pre_logits', 'head'
+         '11','norm', 'pre_logits', 'head'
     ]  # layers for training while keeping others frozen 'norm', 'pre_logits', 'head', 'projection','vitblocks',
     cfg.train.staged_lr = False  # set different lr to different layers
     cfg.train.new_layers = ['']  # newly added layers with default lr
@@ -100,7 +100,7 @@ def get_default_config():
     cfg.test.dist_metric = 'euclidean'  # distance metric, ['euclidean', 'cosine']
     cfg.test.normalize_feature = True  # normalize feature vectors before computing distance
     cfg.test.ranks = [1, 5, 10, 20]  # cmc ranks
-    cfg.test.evaluate = False  # test only
+    cfg.test.evaluate = True  # test only
     cfg.test.eval_freq = 1  # evaluation frequency (-1 means to only test after training)
     cfg.test.start_eval = 0  # start to evaluate after a specific epoch
     cfg.test.rerank = False  # use person re-ranking
